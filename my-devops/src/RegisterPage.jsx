@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus, User, Mail, Lock, CheckCircle } from 'lucide-react';
+import SocialLoginButtons from './components/SocialLoginButtons';
 
 const RegisterPage = () => {
     const [formData, setFormData] = useState({
@@ -98,6 +99,33 @@ const RegisterPage = () => {
                     {loading ? 'Creating Account...' : 'Register'} <UserPlus size={18} style={{ marginLeft: '8px' }} />
                 </button>
             </form>
+
+            {/* Divider */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                margin: '24px 0',
+                gap: '12px'
+            }}>
+                <div style={{
+                    flex: 1,
+                    height: '1px',
+                    background: 'rgba(255, 255, 255, 0.1)'
+                }} />
+                <span style={{
+                    color: 'var(--text-muted)',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                }}>OR</span>
+                <div style={{
+                    flex: 1,
+                    height: '1px',
+                    background: 'rgba(255, 255, 255, 0.1)'
+                }} />
+            </div>
+
+            {/* Social Login */}
+            <SocialLoginButtons type="register" />
         </div>
     );
 };

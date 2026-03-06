@@ -4,10 +4,49 @@ import { getIntegrations } from '../api';
 
 const Settings = () => {
     const [integrations, setIntegrations] = useState({ cloud: [], git: [] });
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        getIntegrations().then(res => setIntegrations(res.data));
+        const fetchIntegrations = async () => {
+            try {
+                const res = await getIntegrations();
+                setIntegrations(res.data || { cloud: [], git: [] });
+            } catch (err) {
+                console.error('Failed to fetch integrations:', err);
+                setError('Failed to load integrations');
+                setIntegrations({ cloud: [], git: [] });
+            } finally {
+                setLoading(false);
+            }
+        };
+        
+        fetchIntegrations();
     }, []);
+
+    if (loading) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+                <div style={{ color: 'var(--text-muted)' }}>Loading settings...</div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+                <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <p>{error}</p>
+                    <button 
+                        onClick={() => window.location.reload()} 
+                        style={{ marginTop: '16px', padding: '8px 16px', background: 'var(--primary)', border: 'none', borderRadius: '4px', color: 'white' }}
+                    >
+                        Retry
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="fade-in">
@@ -40,7 +79,7 @@ const Settings = () => {
                             <Cloud size={20} color="var(--secondary)" /> Cloud Connectors
                         </h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {integrations.cloud.map(c => (
+                            {(integrations?.cloud || []).map(c => (
                                 <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                         <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -65,7 +104,7 @@ const Settings = () => {
                             <Github size={20} color="white" /> Git & Repo Sync
                         </h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {integrations.git.map(g => (
+                            {(integrations?.git || []).map(g => (
                                 <div key={g.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--glass-border)' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                         {g.provider === 'GitHub' ? <Github size={20} /> : <Gitlab size={20} color="#E24329" />}

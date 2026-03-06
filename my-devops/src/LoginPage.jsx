@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from './context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { LogIn, User, Lock } from 'lucide-react';
+import SocialLoginButtons from './components/SocialLoginButtons';
 
 const LoginPage = () => {
     const [username, setUsername] = useState('');
@@ -107,6 +108,33 @@ const LoginPage = () => {
                     {loading ? 'Logging in...' : 'Login'} <LogIn size={18} style={{ marginLeft: '8px' }} />
                 </button>
             </form>
+
+            {/* Divider */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                margin: '24px 0',
+                gap: '12px'
+            }}>
+                <div style={{
+                    flex: 1,
+                    height: '1px',
+                    background: 'rgba(255, 255, 255, 0.1)'
+                }} />
+                <span style={{
+                    color: 'var(--text-muted)',
+                    fontSize: '14px',
+                    fontWeight: '500'
+                }}>OR</span>
+                <div style={{
+                    flex: 1,
+                    height: '1px',
+                    background: 'rgba(255, 255, 255, 0.1)'
+                }} />
+            </div>
+
+            {/* Social Login */}
+            <SocialLoginButtons type="login" />
         </div>
     );
 };

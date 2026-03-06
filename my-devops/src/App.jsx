@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import OAuthCallback from './pages/OAuthCallback';
 import DashboardPage from './DashboardPage';
 import ProjectDetails from './pages/ProjectDetails';
 import Failures from './pages/Failures';
@@ -19,36 +20,13 @@ function App() {
           <Route path="/landing" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/auth/callback/:provider" element={<OAuthCallback />} />
 
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/projects/:id" element={
-            <ProtectedRoute>
-              <ProjectDetails />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/failures" element={
-            <ProtectedRoute>
-              <Failures />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/metrics" element={
-            <ProtectedRoute>
-              <Metrics />
-            </ProtectedRoute>
-          } />
-
-          <Route path="/settings" element={
-            <ProtectedRoute>
-              <Settings />
-            </ProtectedRoute>
-          } />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/projects/:id" element={<ProjectDetails />} />
+          <Route path="/failures" element={<Failures />} />
+          <Route path="/metrics" element={<Metrics />} />
+          <Route path="/settings" element={<Settings />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -13,9 +13,7 @@ export default function ProtectedRoute({ children }) {
       </div>
     );
   }
-  // Allow all for demo purposes
-  // if (!isAuthenticated) {
-  //   return <Navigate to="/login" state={{ from: location }} replace />;
-  // }
+  
+  // Allow all access without authentication
   return children;
 }

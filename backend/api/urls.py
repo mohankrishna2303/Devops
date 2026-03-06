@@ -50,6 +50,9 @@ from .views import (
     deploy_project,
     DeploymentViewSet
 )
+from . import social_auth_views
+from . import missing_endpoints
+from . import cloud_endpoints
 
 router = DefaultRouter()
 router.register(r'organizations', OrganizationViewSet, basename='organization')
@@ -65,6 +68,18 @@ urlpatterns = [
     path('auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/profile/', profile, name='profile'),
+    # Cloud provider endpoints
+    path('terraform/init/', missing_endpoints.terraform_init, name='terraform_init'),
+    path('terraform/plan/', missing_endpoints.terraform_plan, name='terraform_plan'),
+    path('terraform/apply/', missing_endpoints.terraform_apply, name='terraform_apply'),
+    path('terraform/destroy/', missing_endpoints.terraform_destroy, name='terraform_destroy'),
+    path('cloud/aws/test/', cloud_endpoints.test_aws_connection, name='test_aws_connection'),
+    path('cloud/azure/test/', cloud_endpoints.test_azure_connection, name='test_azure_connection'),
+    path('cloud/gcp/test/', cloud_endpoints.test_gcp_connection, name='test_gcp_connection'),
+    path('cloud/providers/', cloud_endpoints.list_cloud_providers, name='list_cloud_providers'),
+    path('auth/social/<str:provider>/', social_auth_views.social_login_redirect, name='social_login_redirect'),
+    path('auth/social/<str:provider>/callback/', social_auth_views.social_login_callback, name='social_login_callback'),
+    path('auth/social/providers/', social_auth_views.social_providers, name='social_providers'),
     path('devops/generate/', generate_config, name='generate_config'),
     path('devops/deploy/', deploy_project, name='deploy_project'),
     path('webhooks/github/', github_webhook, name='github_webhook'),

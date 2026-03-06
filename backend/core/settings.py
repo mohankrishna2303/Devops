@@ -37,6 +37,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.github',
+    'allauth.socialaccount.providers.gitlab',
+    'allauth.socialaccount.providers.bitbucket_oauth2',
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
@@ -52,6 +60,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 
@@ -142,6 +151,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.AllowAny',
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.SessionAuthentication',
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     )
 }
@@ -154,3 +164,74 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+# Django Allauth Configuration
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# Site ID for django-allauth
+SITE_ID = 1
+
+# Allauth Account Settings
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = 'optional'
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_LOGIN_ATTEMPTS_LIMIT = 5
+ACCOUNT_LOGIN_ATTEMPTS_TIMEOUT = 300
+
+# Social Auth Settings
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        'OAUTH_PKCE_ENABLED': True,
+        'APP': {
+            'client_id': os.getenv('GOOGLE_OAUTH_CLIENT_ID', ''),
+            'secret': os.getenv('GOOGLE_OAUTH_CLIENT_SECRET', ''),
+            'key': '',
+        }
+    },
+    'github': {
+        'SCOPE': [
+            'user:email',
+        ],
+        'APP': {
+            'client_id': os.getenv('GITHUB_OAUTH_CLIENT_ID', ''),
+            'secret': os.getenv('GITHUB_OAUTH_CLIENT_SECRET', ''),
+            'key': '',
+        }
+    },
+    'gitlab': {
+        'SCOPE': [
+            'read_user',
+        ],
+        'APP': {
+            'client_id': os.getenv('GITLAB_OAUTH_CLIENT_ID', ''),
+            'secret': os.getenv('GITLAB_OAUTH_CLIENT_SECRET', ''),
+            'key': '',
+        }
+    },
+    'bitbucket_oauth2': {
+        'SCOPE': [
+            'email',
+            'account',
+        ],
+        'APP': {
+            'client_id': os.getenv('BITBUCKET_OAUTH_CLIENT_ID', ''),
+            'secret': os.getenv('BITBUCKET_OAUTH_CLIENT_SECRET', ''),
+            'key': '',
+        }
+    }
+}
+
+# Frontend URL for redirects
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:5174')

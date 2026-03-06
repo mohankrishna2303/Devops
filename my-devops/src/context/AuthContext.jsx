@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as authService from '../services/authService';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
@@ -40,6 +42,37 @@ export function AuthProvider({ children }) {
     // await login(username, password);
   };
 
+  const socialLogin = async (provider, code) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/social/${provider}/callback/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ code }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Social login failed');
+      }
+
+      const data = await response.json();
+      
+      localStorage.setItem('devops_access_token', data.access);
+      if (data.refresh) {
+        localStorage.setItem('devops_refresh_token', data.refresh);
+      }
+      
+      setUser(data.user);
+      setIsAuthenticated(true);
+      
+      return data;
+    } catch (error) {
+      console.error('Social login failed:', error);
+      throw error;
+    }
+  };
+
   const logout = () => {
     authService.clearAuth();
     setUser(null);
@@ -51,6 +84,7 @@ export function AuthProvider({ children }) {
     isAuthenticated: !!user,
     login,
     register,
+    socialLogin,
     logout,
     refreshUser: loadUser,
   };
