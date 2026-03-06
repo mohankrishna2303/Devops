@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # DevOps Dashboard - Complete AI-Powered Platform
 
 A comprehensive DevOps dashboard with ChatGPT integration for automated validation, pipeline analysis, and intelligent insights.
@@ -306,6 +305,3 @@ The dashboard continuously improves with:
 ---
 
 **Built with ❤️ using React, Vite, and ChatGPT**
-=======
-# Devops Project
->>>>>>> be45bc8373c87d39d59a79cd46404e073e79bd90

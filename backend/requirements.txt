@@ -1,0 +1,11 @@
+django
+djangorestframework
+django-cors-headers
+openai
+requests
+python-dotenv
+djangorestframework-simplejwt
+psycopg2-binary
+django-allauth
+social-auth-app-django
+python-jose[cryptography]
