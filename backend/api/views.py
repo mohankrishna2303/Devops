@@ -4,6 +4,9 @@ from rest_framework.permissions import AllowAny, AllowAny
 from rest_framework.response import Response
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+import subprocess
+import os
+import platform
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import (
     Project, Deployment, DevOpsConfig, DORAMetrics, Organization, 
@@ -21,6 +24,7 @@ from .serializers import (
 import json
 import uuid
 import random
+from datetime import datetime, timedelta
 from .ai_service import AIService
 
 # Health Check
@@ -95,7 +99,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
                 terraform_config=configs.get('terraform', '')
             )
         except Exception as e:
-            print(f"Failed to auto-generate configs: {e}")
+            print(f"Failed to auto-generate configs: {str(e)}")
 
     @action(detail=True, methods=['post'])
     def generate_devops(self, request, pk=None):
@@ -157,6 +161,18 @@ class PipelineViewSet(viewsets.ModelViewSet):
     
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
+        
+        # Insert mock data if empty
+        if not queryset.exists():
+            user = self.request.user if self.request.user.is_authenticated else User.objects.filter(username='admin').first() or User.objects.first()
+            org = Organization.objects.filter(owner=user).first()
+            if org:
+                project, _ = Project.objects.get_or_create(name='auth-service', organization=org, defaults={'repo_url': 'https://github.com/org/auth-service', 'language': 'nodejs'})
+                Pipeline.objects.create(project=project, build_number='1045', status='success', branch='main', triggered_by='Alice')
+                Pipeline.objects.create(project=project, build_number='1046', status='running', branch='feature/jwt-auth', triggered_by='Bob')
+                Pipeline.objects.create(project=project, build_number='1047', status='failure', branch='hotfix/login-bug', triggered_by='Charlie')
+            queryset = self.get_queryset()
+
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
     
@@ -339,11 +355,6 @@ def github_webhook(request):
             return Response({'error': str(e)}, status=400)
             
     return Response({'message': 'GitHub webhook received'})
-
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def sync_github_runs(request):
-    return Response({'message': 'GitHub sync initiated'})
 
 # First (stub) get_terraform_data removed – see line ~387 for the real one
 
@@ -593,3 +604,384 @@ def destroy_terraform(request):
 @permission_classes([AllowAny])
 def generate_report(request):
     return Response({'report': 'Generated report'})
+
+# Terminal Execution
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def terminal_execute(request):
+    command = request.data.get('command', '').strip()
+    cwd = request.data.get('cwd', os.getcwd())
+    
+    if not command:
+        return Response({'error': 'Command is required'}, status=400)
+    
+    # Handle 'cd' command
+    if command.startswith('cd '):
+        target_dir = command[3:].strip()
+        new_path = os.path.abspath(os.path.join(cwd, target_dir))
+        if os.path.isdir(new_path):
+            return Response({
+                'stdout': f'Changed directory to {new_path}\n',
+                'stderr': '',
+                'exit_code': 0,
+                'cwd': new_path
+            })
+        else:
+            return Response({
+                'stdout': '',
+                'stderr': f'The system cannot find the path specified: {target_dir}\n',
+                'exit_code': 1,
+                'cwd': cwd
+            })
+
+    try:
+        process = subprocess.Popen(
+            command,
+            cwd=cwd,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        
+        stdout, stderr = process.communicate(timeout=30)
+        
+        return Response({
+            'stdout': stdout,
+            'stderr': stderr,
+            'exit_code': process.returncode,
+            'cwd': cwd
+        })
+    except subprocess.TimeoutExpired:
+        process.kill()
+        return Response({'error': 'Command timed out'}, status=408)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+# File Management
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def file_read(request):
+    file_path = request.query_params.get('path')
+    if not file_path:
+        return Response({'error': 'Path is required'}, status=400)
+    
+    # Security check: only allow reading from the project directory
+    project_root = "D:\\devops"
+    
+    abs_path = os.path.abspath(os.path.join(project_root, file_path))
+    
+    if not abs_path.startswith(project_root):
+        return Response({'error': 'Access denied'}, status=403)
+    
+    if not os.path.exists(abs_path):
+        return Response({'error': 'File not found'}, status=404)
+    
+    try:
+        with open(abs_path, 'r') as f:
+            content = f.read()
+        return Response({'content': content, 'path': file_path})
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_splunk_logs(request):
+    """Mock Splunk Logs"""
+    logs = [
+        { 'id': 1, 'timestamp': '2026-03-07 16:10:45', 'level': 'ERROR', 'service': 'auth-service', 'message': 'Failed password attempt for user admin', 'source': '/var/log/auth.log' },
+        { 'id': 2, 'timestamp': '2026-03-07 16:11:02', 'level': 'INFO', 'service': 'k8s-cluster', 'message': 'Pod payment-gateway-55f8 scaled to 5 replicas', 'source': 'kube-audit' },
+        { 'id': 3, 'timestamp': '2026-03-07 16:12:15', 'level': 'WARNING', 'service': 'db-proxy', 'message': 'Connection pool reaching 85% capacity', 'source': '/var/log/mysql/slow.log' },
+        { 'id': 4, 'timestamp': '2026-03-07 16:13:00', 'level': 'INFO', 'service': 'frontend', 'message': '200 OK /dashboard - user_id=4521', 'source': 'nginx-access' },
+        { 'id': 5, 'timestamp': '2026-03-07 16:14:22', 'level': 'ERROR', 'service': 'payment-gateway', 'message': 'Connection timeout to external provider Stripe', 'source': 'application-trace' },
+    ]
+    return Response({'logs': logs})
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_registry_images(request):
+    """Mock Registry Images"""
+    images = [
+        { 'name': 'braindevops-backend', 'tag': 'v1.4.2', 'size': '245MB', 'status': 'Scanned', 'vulnerabilities': 0, 'pulled': '12m ago' },
+        { 'name': 'braindevops-frontend', 'tag': 'v1.4.1', 'size': '182MB', 'status': 'Scanned', 'vulnerabilities': 0, 'pulled': '45m ago' },
+        { 'name': 'api-gateway-service', 'tag': 'latest', 'size': '120MB', 'status': 'Warning', 'vulnerabilities': 2, 'pulled': '2h ago' },
+        { 'name': 'postgres-custom-db', 'tag': '15-alpine', 'size': '89MB', 'status': 'Scanned', 'vulnerabilities': 0, 'pulled': '1d ago' },
+    ]
+    return Response({'images': images})
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_alerts(request):
+    """Mock System Alerts"""
+    alerts = [
+        { 'id': 1, 'type': 'error', 'title': 'Deployment Failed', 'message': 'Production deployment for aether-api failed due to timeout.', 'time': '2m ago', 'service': 'Jenkins' },
+        { 'id': 2, 'type': 'warning', 'title': 'High CPU Usage', 'message': 'EKS Node Group "dev-nodes" is at 88% CPU capacity.', 'time': '15m ago', 'service': 'EKS' },
+        { 'id': 3, 'type': 'info', 'title': 'Terraform Applied', 'message': 'Infrastructure changes applied successfully to us-east-1.', 'time': '1h ago', 'service': 'Terraform' },
+        { 'id': 4, 'type': 'security', 'title': 'Vulnerability Detected', 'message': 'Critical CVE found in package "requests" in project core-app.', 'time': '3h ago', 'service': 'Snyk' },
+    ]
+    return Response({'alerts': alerts})
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_security_stats(request):
+    """Mock Security Stats"""
+    return Response({
+        'score': 85,
+        'vulnerabilities': {
+            'critical': 0,
+            'high': 2,
+            'medium': 5,
+            'low': 12
+        },
+        'scans': [
+            {'name': 'SAST Scan', 'status': 'Passed', 'date': '2026-03-07'},
+            {'name': 'Dependency Scan', 'status': 'Warning', 'date': '2026-03-07'},
+            {'name': 'Container Scan', 'status': 'Passed', 'date': '2026-03-06'},
+            {'name': 'Secret Detection', 'status': 'Passed', 'date': '2026-03-07'}
+        ]
+    })
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def ai_chat(request):
+    """AI Chat Proxy"""
+    message = request.data.get('message', '')
+    if not message:
+        return Response({'error': 'Message is required'}, status=400)
+    
+    try:
+        ai = AIService()
+        response = ai.chat(message)
+        return Response({'response': response})
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+# New API endpoints for additional DevOps modules
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_environments(request):
+    """Get deployment environments"""
+    environments = [
+        {
+            'id': 1,
+            'name': 'Development',
+            'type': 'development',
+            'status': 'active',
+            'url': 'dev.example.com',
+            'lastDeployed': '2 hours ago',
+            'deployedBy': 'Alice',
+            'version': 'v2.1.0-dev',
+            'services': 8,
+            'health': 'healthy',
+            'resources': {'cpu': '45%', 'memory': '60%', 'storage': '30%'}
+        },
+        {
+            'id': 2,
+            'name': 'Testing',
+            'type': 'testing',
+            'status': 'active',
+            'url': 'test.example.com',
+            'lastDeployed': '6 hours ago',
+            'deployedBy': 'Bob',
+            'version': 'v2.0.5',
+            'services': 6,
+            'health': 'healthy',
+            'resources': {'cpu': '35%', 'memory': '45%', 'storage': '25%'}
+        },
+        {
+            'id': 3,
+            'name': 'Staging',
+            'type': 'staging',
+            'status': 'active',
+            'url': 'staging.example.com',
+            'lastDeployed': '1 day ago',
+            'deployedBy': 'Charlie',
+            'version': 'v2.0.4',
+            'services': 7,
+            'health': 'warning',
+            'resources': {'cpu': '78%', 'memory': '82%', 'storage': '45%'}
+        },
+        {
+            'id': 4,
+            'name': 'Production',
+            'type': 'production',
+            'status': 'active',
+            'url': 'app.example.com',
+            'lastDeployed': '3 days ago',
+            'deployedBy': 'David',
+            'version': 'v2.0.3',
+            'services': 12,
+            'health': 'healthy',
+            'resources': {'cpu': '65%', 'memory': '70%', 'storage': '55%'}
+        }
+    ]
+    return Response({'environments': environments})
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_registry_details(request):
+    """Get container registry details"""
+    images = [
+        {
+            'id': 1,
+            'name': 'web-app',
+            'tags': ['v2.1.0', 'v2.0.3', 'latest'],
+            'size': '245 MB',
+            'lastModified': '2 hours ago',
+            'downloads': 1234,
+            'status': 'active',
+            'layers': 8,
+            'vulnerabilities': {'critical': 0, 'high': 1, 'medium': 3, 'low': 7}
+        },
+        {
+            'id': 2,
+            'name': 'api-server',
+            'tags': ['v1.8.2', 'v1.8.1', 'latest'],
+            'size': '189 MB',
+            'lastModified': '6 hours ago',
+            'downloads': 892,
+            'status': 'active',
+            'layers': 6,
+            'vulnerabilities': {'critical': 0, 'high': 0, 'medium': 1, 'low': 2}
+        },
+        {
+            'id': 3,
+            'name': 'database-migrator',
+            'tags': ['v1.2.0', 'latest'],
+            'size': '156 MB',
+            'lastModified': '1 day ago',
+            'downloads': 456,
+            'status': 'active',
+            'layers': 5,
+            'vulnerabilities': {'critical': 0, 'high': 0, 'medium': 0, 'low': 1}
+        }
+    ]
+    return Response({'images': images})
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_analytics_data(request):
+    """Get analytics and DORA metrics"""
+    return Response({
+        'metrics': [
+            {
+                'title': 'Deployment Frequency',
+                'value': '12.5',
+                'unit': 'per week',
+                'change': 15.2,
+                'trend': 'up'
+            },
+            {
+                'title': 'Lead Time for Changes',
+                'value': '2.4',
+                'unit': 'hours',
+                'change': -8.5,
+                'trend': 'down'
+            },
+            {
+                'title': 'Change Failure Rate',
+                'value': '3.2',
+                'unit': '%',
+                'change': -2.1,
+                'trend': 'down'
+            },
+            {
+                'title': 'Mean Time to Recovery',
+                'value': '45',
+                'unit': 'minutes',
+                'change': -12.3,
+                'trend': 'down'
+            }
+        ],
+        'deploymentData': [
+            {'date': '2024-01-08', 'successful': 8, 'failed': 1, 'total': 9},
+            {'date': '2024-01-09', 'successful': 12, 'failed': 2, 'total': 14},
+            {'date': '2024-01-10', 'successful': 10, 'failed': 0, 'total': 10},
+            {'date': '2024-01-11', 'successful': 15, 'failed': 3, 'total': 18},
+            {'date': '2024-01-12', 'successful': 9, 'failed': 1, 'total': 10},
+            {'date': '2024-01-13', 'successful': 14, 'failed': 2, 'total': 16},
+            {'date': '2024-01-14', 'successful': 11, 'failed': 1, 'total': 12}
+        ]
+    })
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_devops_roles(request):
+    """Get DevOps roles and users"""
+    roles = [
+        {
+            'id': 1,
+            'name': 'Admin',
+            'description': 'Full system access and configuration',
+            'permissions': ['read', 'write', 'delete', 'manage_users', 'manage_integrations', 'deploy'],
+            'userCount': 2
+        },
+        {
+            'id': 2,
+            'name': 'DevOps Engineer',
+            'description': 'Manage infrastructure and deployments',
+            'permissions': ['read', 'write', 'deploy', 'manage_infrastructure'],
+            'userCount': 5
+        },
+        {
+            'id': 3,
+            'name': 'Developer',
+            'description': 'Deploy and monitor applications',
+            'permissions': ['read', 'write', 'deploy'],
+            'userCount': 12
+        },
+        {
+            'id': 4,
+            'name': 'Viewer',
+            'description': 'Read-only access to dashboards',
+            'permissions': ['read'],
+            'userCount': 8
+        }
+    ]
+    
+    users = [
+        {
+            'id': 1,
+            'name': 'Alice Johnson',
+            'email': 'alice@company.com',
+            'role': 'Admin',
+            'status': 'active',
+            'lastLogin': '2 hours ago',
+            'avatar': 'AJ'
+        },
+        {
+            'id': 2,
+            'name': 'Bob Smith',
+            'email': 'bob@company.com',
+            'role': 'DevOps Engineer',
+            'status': 'active',
+            'lastLogin': '1 day ago',
+            'avatar': 'BS'
+        },
+        {
+            'id': 3,
+            'name': 'Charlie Brown',
+            'email': 'charlie@company.com',
+            'role': 'Developer',
+            'status': 'active',
+            'lastLogin': '3 hours ago',
+            'avatar': 'CB'
+        }
+    ]
+    
+    return Response({'roles': roles, 'users': users})
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def update_settings(request):
+    """Update platform settings"""
+    category = request.data.get('category')
+    settings = request.data.get('settings', {})
+    
+    # Here you would typically save to database
+    # For now, just return success
+    return Response({
+        'message': f'Settings updated successfully for {category}',
+        'saved_settings': settings
+    })

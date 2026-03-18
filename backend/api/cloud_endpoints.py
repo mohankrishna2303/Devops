@@ -1,4 +1,4 @@
-from django.http import JsonResponse
+from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 
@@ -7,15 +7,16 @@ from rest_framework.permissions import AllowAny
 def test_aws_connection(request):
     """Test AWS connection"""
     try:
+        data = getattr(request, 'data', {})
         # Mock AWS connection test
-        return JsonResponse({
+        return Response({
             'success': True,
             'message': 'AWS connection successful',
-            'region': request.data.get('region', 'us-east-1'),
+            'region': data.get('region', 'us-east-1'),
             'services': ['EC2', 'S3', 'RDS', 'Lambda']
         })
     except Exception as e:
-        return JsonResponse({
+        return Response({
             'success': False,
             'error': str(e)
         }, status=500)
@@ -25,15 +26,16 @@ def test_aws_connection(request):
 def test_azure_connection(request):
     """Test Azure connection"""
     try:
+        data = getattr(request, 'data', {})
         # Mock Azure connection test
-        return JsonResponse({
+        return Response({
             'success': True,
             'message': 'Azure connection successful',
-            'subscription': request.data.get('subscription', 'default-subscription'),
+            'subscription': data.get('subscription', 'default-subscription'),
             'resource_groups': ['devops-rg', 'production-rg']
         })
     except Exception as e:
-        return JsonResponse({
+        return Response({
             'success': False,
             'error': str(e)
         }, status=500)
@@ -43,15 +45,16 @@ def test_azure_connection(request):
 def test_gcp_connection(request):
     """Test GCP connection"""
     try:
+        data = getattr(request, 'data', {})
         # Mock GCP connection test
-        return JsonResponse({
+        return Response({
             'success': True,
             'message': 'GCP connection successful',
-            'project': request.data.get('project', 'my-project'),
+            'project': data.get('project', 'my-project'),
             'services': ['Compute Engine', 'Cloud Storage', 'Cloud SQL']
         })
     except Exception as e:
-        return JsonResponse({
+        return Response({
             'success': False,
             'error': str(e)
         }, status=500)
@@ -61,7 +64,7 @@ def test_gcp_connection(request):
 def list_cloud_providers(request):
     """List available cloud providers"""
     try:
-        return JsonResponse({
+        return Response({
             'providers': [
                 {
                     'name': 'AWS',
@@ -84,6 +87,6 @@ def list_cloud_providers(request):
             ]
         })
     except Exception as e:
-        return JsonResponse({
+        return Response({
             'error': str(e)
         }, status=500)

@@ -1,4 +1,4 @@
-from django.http import JsonResponse
+from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 import json
@@ -9,13 +9,13 @@ def terraform_init(request):
     """Initialize Terraform"""
     try:
         # Mock terraform initialization
-        return JsonResponse({
+        return Response({
             'success': True,
             'message': 'Terraform initialized successfully',
             'workspace': 'default'
         })
     except Exception as e:
-        return JsonResponse({
+        return Response({
             'success': False,
             'error': str(e)
         }, status=500)
@@ -26,7 +26,7 @@ def terraform_plan(request):
     """Create Terraform plan"""
     try:
         # Mock terraform plan creation
-        return JsonResponse({
+        return Response({
             'success': True,
             'message': 'Terraform plan created',
             'plan_id': 'plan_123',
@@ -37,7 +37,7 @@ def terraform_plan(request):
             }
         })
     except Exception as e:
-        return JsonResponse({
+        return Response({
             'success': False,
             'error': str(e)
         }, status=500)
@@ -47,9 +47,10 @@ def terraform_plan(request):
 def terraform_apply(request):
     """Apply Terraform plan"""
     try:
-        plan_id = request.data.get('plan_id')
+        data = getattr(request, 'data', {})
+        plan_id = data.get('plan_id', 'unknown')
         # Mock terraform apply
-        return JsonResponse({
+        return Response({
             'success': True,
             'message': 'Terraform plan applied successfully',
             'plan_id': plan_id,
@@ -58,7 +59,7 @@ def terraform_apply(request):
             'resources_destroyed': 1
         })
     except Exception as e:
-        return JsonResponse({
+        return Response({
             'success': False,
             'error': str(e)
         }, status=500)
@@ -69,13 +70,13 @@ def terraform_destroy(request):
     """Destroy Terraform resources"""
     try:
         # Mock terraform destroy
-        return JsonResponse({
+        return Response({
             'success': True,
             'message': 'Terraform resources destroyed successfully',
             'resources_destroyed': 8
         })
     except Exception as e:
-        return JsonResponse({
+        return Response({
             'success': False,
             'error': str(e)
         }, status=500)

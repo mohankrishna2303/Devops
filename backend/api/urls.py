@@ -1,5 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from django.http import HttpResponse
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -48,7 +49,19 @@ from .views import (
     run_security_audit,
     generate_config,
     deploy_project,
-    DeploymentViewSet
+    DeploymentViewSet,
+    terminal_execute,
+    file_read,
+    get_splunk_logs,
+    get_registry_images,
+    get_alerts,
+    get_security_stats,
+    ai_chat,
+    get_environments,
+    get_registry_details,
+    get_analytics_data,
+    get_devops_roles,
+    update_settings,
 )
 from . import social_auth_views
 from . import missing_endpoints
@@ -62,6 +75,7 @@ router.register(r'failures', FailureViewSet, basename='failure')
 router.register(r'deployments', DeploymentViewSet, basename='deployment')
 
 urlpatterns = [
+    path('favicon.ico', lambda x: HttpResponse(status=204)),
     path('', api_health, name='api_health'),
     path('health/', api_health, name='api_health_alt'),
     path('auth/register/', RegisterView.as_view(), name='auth_register'),
@@ -93,7 +107,6 @@ urlpatterns = [
     path('failures/<int:pk>/resolve/', resolve_failure, name='resolve_failure'),
     path('sync/github/', sync_github_runs, name='sync_github_runs'),
     path('terraform/hub/', get_terraform_data, name='get_terraform_hub'),
-    path('terraform/apply/', apply_terraform_plan, name='apply_terraform_plan'),
     path('sync/jenkins/', sync_jenkins_job, name='sync_jenkins_job'),
     path('k8s/fleet/', get_k8s_fleet, name='get_k8s_fleet'),
     path('k8s/namespaces/', get_k8s_namespaces, name='get_k8s_namespaces'),
@@ -107,6 +120,7 @@ urlpatterns = [
     path('k8s/events/', get_k8s_events, name='get_k8s_events'),
     path('observability/telemetry/', get_observability_telemetry, name='get_telemetry'),
     path('integrations/all/', get_integrations, name='get_integrations'),
+    path('integrations/', get_integrations, name='get_integrations_simple'),
     path('databases/all/', get_databases, name='get_databases'),
     path('databases/connect-local/', connect_local_db, name='connect_local_db'),
     path('cloud/scan/', scan_cloud_resources, name='scan_cloud'),
@@ -118,7 +132,19 @@ urlpatterns = [
     path('failures/<int:pk>/ai-patch/', get_ai_patch, name='get_ai_patch'),
     path('devops/stress-test/', run_devops_stress, name='stress_test'),
     path('devops/security-audit/', run_security_audit, name='security_audit'),
-    
+    path('terminal/execute/', terminal_execute, name='terminal_execute'),
+    path('files/read/', file_read, name='file_read'),
+    path('splunk/logs/', get_splunk_logs, name='splunk_logs'),
+    path('registry/', get_registry_images, name='registry_images'),
+    path('alerts/', get_alerts, name='get_alerts'),
+    path('security/stats/', get_security_stats, name='security_stats'),
+    path('ai/chat/', ai_chat, name='ai_chat'),
+    path('environments/', get_environments, name='get_environments'),
+    path('registry/details/', get_registry_details, name='get_registry_details'),
+    path('analytics/data/', get_analytics_data, name='get_analytics_data'),
+    path('devops/roles/', get_devops_roles, name='get_devops_roles'),
+    path('settings/update/', update_settings, name='update_settings'),
+
     # Router routes last
     path('', include(router.urls)),
 ]
